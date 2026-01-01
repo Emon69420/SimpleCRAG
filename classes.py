@@ -50,3 +50,13 @@ class VectorStore(Embedding):
         vectorDB = Chroma.from_documents(self.documents, embeddings)
         return vectorDB
     
+class Retriever():
+    def __init__(self, vectorstore, query):
+        self.vectorstore = vectorstore
+        self.query: str = query
+
+    def retrieve(self, vectorstore):
+        retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k":10})
+        docs = retriever.invoke(self.query)
+        return docs
+        
