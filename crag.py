@@ -3,6 +3,9 @@ from langchain_community.vectorstores import Chroma
 from langchain.chat_models import init_chat_model
 from langchain import hub
 from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.pydantic_v2 import BaseModel, Field
+
 
 url = [
     "https://ryanocm.substack.com/p/mystery-gift-box-049-law-1-fill-your",
@@ -21,6 +24,14 @@ query = "bagel method in relationships"
 vectors = vectorstore.store()
 retriever = Retriever(vectors, query)
 docs = retriever.retrieve(vectors)
+
+#gives a binary score on whether the document is relevant to the query
+class Evaluator(BaseModel):
+
+    binary_score: str = Field(
+        description="Documents are relevant to the question, Yes or No"
+    )
+
 
 #LLM for using the retrieved documents to answer the query
 rag_prompt = hub.pull("rlm/rag-prompt") # Pre-built RAG prompt template
@@ -49,3 +60,14 @@ print('\\n\\n'.join(['- %s' % x.page_content for x in docs]))
 print("----")
 print("Final answer: %s" % generation)
 
+structured_llm = llm.with_structured_output(Evaluator)
+system = """You are a document retrieval evaluator that's responsible for checking the relevancy of a retrieved document to the user's question. \\n 
+    If the document contains keyword(s) or semantic meaning related to the question, grade it as relevant. \\n
+    Output a binary score 'yes' or 'no' to indicate whether the document is relevant to the question."""
+
+evaluator_prompt = ChatPromptTemplate.from_messages([
+    ("system", system),
+    ("human", "Question: {question} \\n Document: {document} \\n"),
+])
+
+eval_grader = evaluator_prompt | structured_llm

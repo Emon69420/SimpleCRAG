@@ -1,5 +1,5 @@
 from langchain.chat_models import init_chat_model
-from langchain.prompts.chat import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
 class Rewriter():
