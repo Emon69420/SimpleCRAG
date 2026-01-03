@@ -5,8 +5,11 @@ from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 from langchain.chat_models import init_chat_model
 from corrective import Rewriter
+from langchain_core.output_parsers import StrOutputParser
+from tavily import TavilyClient
 
 api_key = ''
+tavily_api_key = ''
 
 # This is just an evaluator class to give binary score on whether the document is relevant to the query
 #Not part of the graph
@@ -21,6 +24,7 @@ class AgentState(TypedDict):
     documents: List[str]
     websearch: str
     generation:str
+    generatedMessage: str
 
 def retrieve(state: AgentState) -> AgentState:
 
@@ -85,6 +89,30 @@ def corrective(state: AgentState) -> AgentState:
     print("Rewritten Query:", rewritten_query)
     return state
 
+def websearch(state: AgentState) -> AgentState:
+    """Performing web search for finding context"""
+    client = TavilyClient(api_key=tavily_api_key)
+    response = client.search(state["query"])
+    state["documents"] = response['results']
+    return state
+    
+
+def generation(state: AgentState) -> AgentState:
+    """Generates final answers using the retrieved docuements."""
+
+    llm = init_chat_model("google_genai:models/gemini-flash-lite-latest", temperature=0, api_key=api_key)
+    system = """You are a retrieval-augmented generation (RAG) model that uses provided context documents to answer user questions. in a natural language way and easy to understand manner.
+    context: \n {documents} """
+    
+    rag_prompt = ChatPromptTemplate.from_messages([
+        ("system", system),
+        ("human", "{question}")
+    ])
+
+    rag_chain = rag_prompt | llm | StrOutputParser()
+    generation = rag_chain.invoke({ "question": state["query"], "documents": state["documents"] })
+    state["generatedMessage"] = generation
+    return state
 
 def decide(state: AgentState) -> AgentState:
     """Deciding Next Step Based on Evaluation."""
@@ -103,19 +131,30 @@ graph.add_node("retrieve", retrieve)
 graph.add_node("evaluate", evaluate)
 graph.add_node("router", lambda state:state)
 graph.add_node("corrective", corrective)
+graph.add_node("websearch", websearch)
+graph.add_node("generation", generation)
 graph.add_edge(START, "retrieve")
 graph.add_edge("retrieve", "evaluate")
 graph.add_conditional_edges("router",
                             decide,
                             {
                                 "corrective":"corrective",
-                                "generation":END
+                                "generation":"generation"
                             }
                             )
 graph.add_edge("evaluate", "router")
-graph.add_edge("corrective", END)
+graph.add_edge("corrective", "websearch" )
+graph.add_edge("websearch", "generation")
+graph.add_edge("generation", END)
 
 app = graph.compile()
-result = app.invoke({"query": "Do you know about that gun law in texas like what do i need to have legally?"})
-print(result)
+
+x = 0
+while x == 0:
+    query = input("Enter your question: ")
+    result = app.invoke({"query": query})
+    print(result["generatedMessage"])
+    print(result["documents"])
+    x = int(input("Enter 0 to ask another question, or 1 to exit: "))
+
 
