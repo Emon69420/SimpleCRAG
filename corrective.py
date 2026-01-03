@@ -13,11 +13,12 @@ class Rewriter():
             temperature=0,
             api_key=self.api_key
         )
-        system = """You are a question re-writer that converts an input question to a better version that is optimized \\n 
-     for web search. Look at the input and try to reason about the underlying semantic intent / meaning."""
+        system = """You are a question re-writer that converts an input question to a better version optimized for web search.
+        Rewrite the user's question as a single improved search query. Do not include explanations, options, or reasoning. Only output the rewritten question."""
+        
         rewrite_prompt = ChatPromptTemplate.from_messages([
             ("system", system),
-            ("human", "Rewrite the following question for web search, Formulate an improved question.: {query}"),
+            ("human", "{query}"),
         ])
         question_writer = rewrite_prompt | llm | StrOutputParser()
         

@@ -65,8 +65,6 @@ def evaluate(state: AgentState) -> AgentState:
     ])
 
     eval_grader = evaluator_prompt | structured_llm
-
-    filtered_docs = []
     for doc in documents:
         result = eval_grader.invoke({
             "question": question,
@@ -118,6 +116,6 @@ graph.add_edge("evaluate", "router")
 graph.add_edge("corrective", END)
 
 app = graph.compile()
-result = app.invoke({"query": "How To Open Eye Chests In Hogwarts Legacy?"})
+result = app.invoke({"query": "Do you know about that gun law in texas like what do i need to have legally?"})
 print(result)
 
