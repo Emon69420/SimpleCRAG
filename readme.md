@@ -1,4 +1,4 @@
-# CRAG: Contextual Retrieval-Augmented Generation
+# CRAG: Corrective Retrieval-Augmented Generation
 
 This project is a Corrective Retrieval-Augmented Generation (RAG) pipeline using Google Gemini and Tavily for web search.
 
