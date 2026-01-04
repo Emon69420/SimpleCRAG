@@ -1,0 +1,10 @@
+langchain
+langchain-core
+langchain-community
+langchain-huggingface
+pydantic
+tavily
+python-dotenv
+openai
+chromadb
+google-generativeai
